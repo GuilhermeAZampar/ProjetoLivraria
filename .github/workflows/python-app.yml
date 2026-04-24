@@ -19,3 +19,4 @@ jobs:
 
       - name: 🐳 Build do Docker
         run: docker build -t my-fastapi-app .
+
