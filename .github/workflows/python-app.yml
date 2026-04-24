@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: 🔄 Checkout do código
         uses: actions/checkout@v3
+        with:
+          submodules: false
 
       - name: 🐳 Build do Docker
         run: docker build -t my-fastapi-app .
