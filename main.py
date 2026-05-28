@@ -28,18 +28,45 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker ,Session
 
+import logging.config
+import yaml
+from elasticsearch import Elasticsearch
+from datetime import datetime
+
+
 
 DATABASE_URL=os.getenv("DATABASE_URL")
 engine= create_engine(DATABASE_URL,connect_args={"check_same_thread":False})
 SessionLocal=sessionmaker(autocommit=False,autoflush=False,bind=engine)
 Base= declarative_base()
 
+ELASTICSEARCH_URL=os.getenv("ELASTICSEARCH_URL","http://localhost:9200")
+ELASTICSEARCH_INDEX=os.getenv("ELASTICSEARCH_INDEX","livros-logs")
 
 REDIS_HOST=os.getenv("REDIS_HOST","localhost")
 REDIS_PORT=int(os.getenv("REDIS_PORT","6379"))
 
 
-redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True)
+redis_client = redis.Redis(
+    host=REDIS_HOST,
+    port=REDIS_PORT,
+    db=0,
+    decode_responses=True
+)
+
+def get_es():
+    return Elasticsearch(
+        [ELASTICSEARCH_URL],
+        request_timeout=5
+    )
+
+with open("logging.yaml") as f:
+    config = yaml.safe_load(f)
+    logging.config.dictConfig(config)
+
+logger = logging.getLogger("name")
+logger.info("API iniciando")
+
 app = FastAPI(
     title = "Api de livros",
     description="Api de livros",
@@ -73,10 +100,16 @@ class Livro(BaseModel):
 Base.metadata.create_all(bind=engine)
 
 def salvar_redis(id_livro:int,livro:Livro):
-    redis_client.set(f"livro:{id_livro}",json.dumps(livro.model_dump()))
+    try:
+        redis_client.set(f"livro:{id_livro}",json.dumps(livro.model_dump()))
+    except:
+        pass
 
 def deletar_redis(id_livro:int):
-    redis_client.delete(f"livro:{id_livro}")
+    try:
+        redis_client.delete(f"livro:{id_livro}")
+    except:
+        pass
 
 
 
@@ -94,6 +127,8 @@ def autenticar_meu_usuario(credentials:HTTPBasicCredentials = Depends(security))
     is_password_corret= secrets.compare_digest(credentials.password,minha_senha)
     if not(is_user_correct and is_password_corret):
         raise HTTPException(status_code = 401,detail = "Usario ou senha incorretos",headers = {"WWW-Authenticate":"Basic"})
+    
+    return credentials
 
 
 @app.post("/calcular/soma")
@@ -127,13 +162,20 @@ def ver_livros():
     for chave in chaves:
         valor = redis_client.get(chave)
         ttl= redis_client.ttl(chave)
-        livros.append({"chave":chave,"valor":json.loads(valor),"ttl":ttl})
+
+        try:
+            valor=json.loads(valor)
+        except:
+            pass
+
+        livros.append({"chave":chave,"valor":valor,"ttl":ttl})
     
     return livros
 
 
 @app.get("/")
 def home():
+    logger.info("Alguem acessou o nosso /")
     return{"Hello":"Word"}
 
 
@@ -164,27 +206,84 @@ async def chamadas():
 
 
 @app.get("/livros")
-async def get_livros(page:int=1,limit:int=10,db:Session=Depends(sessao_db),credentials:HTTPBasicCredentials=Depends(autenticar_meu_usuario)):
-    if page<1 or limit <1:
-        raise HTTPException(status_code=400,detail="Erro page ou limit invalidos")
-    
-    cache_key=f"livro:page={page}&limit={limit}"
-    cached=redis_client.get(cache_key)
-    if cached:
-        return json.loads(cached)
-    
+async def get_livros(
+    page:int=1,
+    limit:int=10,
+    db:Session=Depends(sessao_db),
+    credentials:HTTPBasicCredentials=Depends(autenticar_meu_usuario)
+):
 
-    
+    if page < 1 or limit < 1:
+        raise HTTPException(status_code=400, detail="Erro page ou limit invalidos")
+
+    #cache_key=f"livro:page={page}&limit={limit}"
+
+    #try:
+        #cached=redis_client.get(cache_key)
+
+        #if cached:
+            #return json.loads(cached)
+    #except:
+        #pass
+
     livros = db.query(LivroDB).offset((page-1)*limit).limit(limit).all()
-    
+
     if not livros:
-        return {"message":"Erro nao ha livros cadastrados"}
-    
-    total_livros=db.query(LivroDB).count()
- 
-    resposta={"page":page,"limit":limit,"total":total_livros,"livro":[{"id":livro.id,"nome_livro":livro.nome_livro,"autor_livro":livro.autor_livro,"ano_livro":livro.ano_livro}for livro in livros]}
-    redis_client.setex(cache_key,30,json.dumps(resposta))
-    return resposta
+        response = {"Erro":"esse livro nao existe"}
+    else:
+        total_livros = db.query(LivroDB).count()
+
+        response = {
+            "page": page,
+            "limit": limit,
+            "total": total_livros,
+            "livro": [
+                {
+                    "id": livro.id,
+                    "nome_livro": livro.nome_livro,
+                    "autor_livro": livro.autor_livro,
+                    "ano_livro": livro.ano_livro
+                }
+                for livro in livros
+            ]
+        }
+
+    log = {
+        "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S"),
+        "endpoint": "/livros",
+        "usuario": credentials.username,
+        "page": page,
+        "limit": limit,
+        "status": "success" if livros else "not found",
+        "total_livros": len(livros)
+    }
+
+    logger.info(json.dumps(log))
+
+    try:
+        es = get_es()
+
+        if es.ping():
+
+            es.index(
+                index=ELASTICSEARCH_INDEX,
+                document=log
+            )
+
+            print("LOG ENVIADO")
+
+        else:
+            print("Elasticsearch nao respondeu")
+
+    except Exception as e:
+        print(f"Erro Elasticsearch: {e}")
+
+    #try:
+        #redis_client.setex(cache_key,30,json.dumps(response))
+    #except:
+        #pass
+
+    return response
  
 
 @app.post("/adicionar")
@@ -197,8 +296,14 @@ async def post_livro(livro:Livro,db:Session=Depends(sessao_db),credentials:HTTPB
     db.add(novo_livro)
     db.commit()
     db.refresh(novo_livro)
+
     salvar_redis(novo_livro.id,livro)
-    enviar_evento("livros_eventos",{"acao":"criar","livro":livro.model_dump()})
+
+    try:
+        enviar_evento("livros_eventos",{"acao":"criar","livro":livro.model_dump()})
+    except:
+        pass
+
     return{"message":"Livro adicionado com sucesso"}
    
 
@@ -214,7 +319,9 @@ async def put_livro(id_livro:int,livro:Livro,db:Session=Depends(sessao_db),crede
     
     db.commit()
     db.refresh(db_livros)
+
     salvar_redis(db_livros.id,livro)
+
     return{"message":"Livro atualizado com sucesso"}
 
 
@@ -227,7 +334,14 @@ async def delete_livro(id_livro : int,db:Session=Depends(sessao_db),credentials:
     
     db.delete(db_livro)
     db.commit()
-    deletar_redis(id_livro)
-    return{"message":"Livro deletado com sucesso"}
-      
 
+    deletar_redis(id_livro)
+
+    return{"message":"Livro deletado com sucesso"}
+
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

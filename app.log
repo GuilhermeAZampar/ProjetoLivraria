@@ -1,0 +1,64 @@
+{"time":"2026-04-28 11:20:28,996","level":"INFO","message":"API iniciando"}
+{"time":"2026-04-28 11:20:29,037","level":"INFO","message":"Will watch for changes in these directories: ['E:\\Curso EBAC\\MainBackEnd']"}
+{"time":"2026-04-28 11:20:29,038","level":"INFO","message":"Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)"}
+{"time":"2026-04-28 11:20:29,039","level":"INFO","message":"Started reloader process [4524] using WatchFiles"}
+{"time":"2026-04-28 11:20:29,503","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:29,905","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:30,308","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:30,400","level":"INFO","message":"API iniciando"}
+{"time":"2026-04-28 11:20:30,716","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:31,120","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:31,521","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:31,927","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:32,335","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:32,737","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:33,139","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:33,543","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:33,946","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:34,350","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:34,757","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:35,161","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:35,562","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:35,967","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:36,370","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:36,775","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:37,180","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:37,585","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:37,990","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:38,397","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:38,802","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:39,162","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:39,595","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:39,947","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:40,356","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:40,763","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:41,166","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:41,571","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:41,977","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:42,381","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:42,783","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:43,188","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:43,592","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:43,998","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:44,404","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:44,809","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:45,214","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:45,619","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:46,025","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:46,434","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:46,839","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:47,241","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:47,645","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:48,048","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:48,452","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:48,854","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:49,256","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:49,609","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:49,966","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:50,325","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:50,685","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:51,092","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:51,498","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:51,903","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:52,306","level":"INFO","message":"1 change detected"}
+{"time":"2026-04-28 11:20:52,749","level":"INFO","message":"Stopping reloader process [4524]"}

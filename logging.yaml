@@ -1,0 +1,22 @@
+version: 1
+
+formatters:
+  json:
+    format: '{"time":"%(asctime)s","level":"%(levelname)s","message":"%(message)s"}'
+
+handlers:
+
+  console:
+    class: logging.StreamHandler
+    formatter: json
+    level: INFO
+
+  file:
+    class: logging.FileHandler
+    filename: logs/app.log
+    formatter: json
+    level: INFO
+
+root:
+  level: INFO
+  handlers: [console, file]

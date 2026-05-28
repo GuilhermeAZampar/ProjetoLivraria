@@ -1,68 +1,101 @@
-version: "3.8"
+version: '3.8'
 
 services:
+
   app:
     build: .
-    container_name: livro_api
+
+    container_name: api
+
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app
+
     environment:
+      - DATABASE_URL=sqlite:///./livros.db
       - KAFKA_SERVER=kafka:9092
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ELASTICSEARCH_INDEX=livros-logs
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - meu_usuario=admin
+      - minha_senha=admin
+
+    volumes:
+      - ./logs:/app/logs
+
     depends_on:
+      - elasticsearch
+      - logstash
       - kafka
       - redis
-    command: ["poetry","run","uvicorn","main:app","--host","0.0.0.0","--port","8000"]
 
-  redis:
-    image: redis:7-alpine
-    container_name: livro_redis
-    ports:
-      - "6379:6379"
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
 
-  celery:
-    build: .
-    container_name: livro_celery
-    command: ["poetry","run","celery","-A","celery_app","worker","--loglevel=info"]
-    volumes:
-      - .:/app
-    depends_on:
-      - redis
-    env_file:
-      - .env
+    container_name: elasticsearch
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
-    container_name: livros_zookeeper
-    ports:
-      - "2181:2181"
     environment:
-      - ZOOKEEPER_CLIENT_PORT=2181
-      - ZOOKEEPER_TICK_TIME=2000
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+
+    ports:
+      - "9200:9200"
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.12.0
+
+    container_name: logstash
+
+    ports:
+      - "5044:5044"
+
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - ./logs:/logs
+
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.0
+
+    container_name: kibana
+
+    ports:
+      - "5601:5601"
+
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+
+    depends_on:
+      - elasticsearch
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.12.0
+
+    container_name: filebeat
+
+    user: root
+
+    volumes:
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml
+      - ./logs:/logs
+
+    depends_on:
+      - logstash
 
   kafka:
-    image: confluentinc/cp-kafka:7.5.0
-    container_name: livros_kafka
+    image: apache/kafka:latest
+
+    container_name: kafka
+
     ports:
       - "9092:9092"
-    depends_on:
-      - zookeeper
-    environment:
-      - KAFKA_BROKER_ID=1
-      - KAFKA_ZOOKEEPER_CONNECT=livros_zookeeper:2181
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
-      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
-      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: livros_kafka_ui
+  redis:
+    image: redis:7
+
+    container_name: redis
+
     ports:
-      - "8080:8080"
-    depends_on:
-      - kafka
-    environment:
-      - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka:9092
+      - "6379:6379"
