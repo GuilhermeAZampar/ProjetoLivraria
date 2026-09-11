@@ -1,10 +1,4 @@
-#vamos criar uma api de livros 
-
-#vamos usar get , post, put e delete
-#o get busca os dados
-#o post adiciona livros
-#o put atualiza livros
-#o delete deleta
+from calendar import error
 
 from fastapi import FastAPI , HTTPException,Depends
 from fastapi.security import HTTPBasic ,HTTPBasicCredentials
@@ -21,10 +15,11 @@ from tasks import somar as task_somar,fatorial as task_fatorial
 from celery_app import celery_app
 from celery.result import AsyncResult
 from kafka_producer import enviar_evento
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, true
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker ,Session
 
@@ -45,6 +40,7 @@ ELASTICSEARCH_INDEX=os.getenv("ELASTICSEARCH_INDEX","livros-logs")
 
 REDIS_HOST=os.getenv("REDIS_HOST","localhost")
 REDIS_PORT=int(os.getenv("REDIS_PORT","6379"))
+USE_REDIS=os.getenv('USE_REDIS','false').lower() =="true"
 
 
 redis_client = redis.Redis(
@@ -78,6 +74,14 @@ app = FastAPI(
     }
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['http://localhost:5173'],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 meu_usuario = os.getenv("meu_usuario")
 minha_senha = os.getenv("minha_senha")
 security = HTTPBasic()
@@ -100,16 +104,21 @@ class Livro(BaseModel):
 Base.metadata.create_all(bind=engine)
 
 def salvar_redis(id_livro:int,livro:Livro):
+    if not USE_REDIS:
+        return
+
     try:
         redis_client.set(f"livro:{id_livro}",json.dumps(livro.model_dump()))
-    except:
-        pass
+    except Exception as error:
+        print(f"Redis indisponivel por {error}")
 
 def deletar_redis(id_livro:int):
+    if not USE_REDIS:
+        return
     try:
         redis_client.delete(f"livro:{id_livro}")
-    except:
-        pass
+    except Exception as error:
+        print(f"Erro ao excluir cache {error}")
 
 
 
@@ -207,29 +216,43 @@ async def chamadas():
 
 @app.get("/livros")
 async def get_livros(
-    page:int=1,
-    limit:int=10,
-    db:Session=Depends(sessao_db),
-    credentials:HTTPBasicCredentials=Depends(autenticar_meu_usuario)
+    page: int = 1,
+    limit: int = 10,
+    db: Session = Depends(sessao_db),
+    credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)
 ):
 
     if page < 1 or limit < 1:
-        raise HTTPException(status_code=400, detail="Erro page ou limit invalidos")
+        raise HTTPException(
+            status_code=400,
+            detail="Erro page ou limit invalidos"
+        )
 
-    #cache_key=f"livro:page={page}&limit={limit}"
 
-    #try:
-        #cached=redis_client.get(cache_key)
+    cache_key = f"livro:page={page}&limit={limit}"
 
-        #if cached:
-            #return json.loads(cached)
-    #except:
-        #pass
 
-    livros = db.query(LivroDB).offset((page-1)*limit).limit(limit).all()
+    if USE_REDIS:
+        try:
+            cached=redis_client.get(cache_key)
+            if cached:
+                return json.loads(cached)
+        except Exception as error:
+            print(f"Erro ao carregar cache {error}")
+
+
+    livros = (
+        db.query(LivroDB)
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
 
     if not livros:
-        response = {"Erro":"esse livro nao existe"}
+        response = {
+            "Erro": "esse livro nao existe"
+        }
+
     else:
         total_livros = db.query(LivroDB).count()
 
@@ -260,30 +283,20 @@ async def get_livros(
 
     logger.info(json.dumps(log))
 
-    try:
-        es = get_es()
-
-        if es.ping():
-
-            es.index(
-                index=ELASTICSEARCH_INDEX,
-                document=log
-            )
-
-            print("LOG ENVIADO")
-
-        else:
-            print("Elasticsearch nao respondeu")
-
-    except Exception as e:
-        print(f"Erro Elasticsearch: {e}")
-
-    #try:
-        #redis_client.setex(cache_key,30,json.dumps(response))
-    #except:
-        #pass
+    if USE_REDIS:
+        try:
+            redis_client.setex(cache_key, 30, json.dumps(response))
+        except Exception as error:
+            print(f"Erro ao carregar cache {error}")
 
     return response
+
+
+
+
+
+
+
  
 
 @app.post("/adicionar")
